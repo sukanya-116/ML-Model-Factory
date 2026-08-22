@@ -1,0 +1,41 @@
+# Deployment mode: 'standalone' for dev, 'distributed' for production (requires 4+ nodes)
+mode: standalone
+
+# Number of replicas (only applies to standalone mode)
+replicas: 1
+
+# Storage configuration
+persistence:
+  enabled: true
+  storageClass: "standard"        # Use your cluster's default storage class
+  size: 5Gi                      # Allocate 50GB of persistent storage
+
+# Resource limits for the MinIO pod
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 250m
+  limits:
+    memory: 2Gi
+    cpu: 1000m
+
+# Service configuration
+service:
+  type: ClusterIP                 # Use NodePort/LoadBalancer for external access
+  ports:
+    api: 9000                     # S3 API port
+    console: 9001                 # Web UI port
+
+# Enable the built-in MinIO Console (web UI)
+console:
+  enabled: true
+
+# Network policy (optional, for security)
+networkPolicy:
+  enabled: false                  # Set to true if you want to restrict ingress/egress
+
+# Extra environment variables for advanced settings (e.g., enabling versioning)
+extraEnvVars:
+  - name: MINIO_BROWSER_LOGIN_ANIMATION
+    value: "off"
+
