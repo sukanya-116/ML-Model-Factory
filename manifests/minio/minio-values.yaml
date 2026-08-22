@@ -39,3 +39,20 @@ extraEnvVars:
   - name: MINIO_BROWSER_LOGIN_ANIMATION
     value: "off"
 
+buckets:
+  - name: raw-data
+    policy: none
+    purge: false
+  - name: processed-features
+    policy: none
+    purge: false
+  - name: mlflow-artifacts
+    policy: none
+    purge: false
+  - name: model-store
+    policy: none
+    purge: false
+
+auth:
+  rootUser: "mlfactory-admin"
+  rootPassword: "StrongP@ssw0rd!"   # Must be at least 8 characters
