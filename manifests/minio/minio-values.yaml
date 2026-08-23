@@ -52,7 +52,3 @@ buckets:
   - name: model-store
     policy: none
     purge: false
-
-auth:
-  rootUser: "mlfactory-admin"
-  rootPassword: "StrongP@ssw0rd!"   # Must be at least 8 characters
