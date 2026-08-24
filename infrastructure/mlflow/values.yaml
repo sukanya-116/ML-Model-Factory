@@ -1,48 +1,59 @@
-# mlflow-values.yaml
+#═══════════════════════════════════════════════════════════════════
+# 1. MLflow Environment Variables (for backend and artifact store)
+# ═══════════════════════════════════════════════════════════════════
 mlflow:
-  # Backend store: PostgreSQL (read from secret)
   backendStoreUriFrom:
     secretKeyRef:
       name: mlflow-db-secret
       key: uri
-
-  # Artifact store: MinIO
   artifactsDestination: "s3://mlflow-artifacts/"
-
-  # Environment variables loaded from the corrected secrets
   env:
     - name: AWS_ACCESS_KEY_ID
       valueFrom:
         secretKeyRef:
-          name: minio-credentials
           key: AWS_ACCESS_KEY_ID
+          name: minio-credentials
     - name: AWS_SECRET_ACCESS_KEY
       valueFrom:
         secretKeyRef:
-          name: minio-credentials
           key: AWS_SECRET_ACCESS_KEY
+          name: minio-credentials
     - name: MLFLOW_S3_ENDPOINT_URL
       valueFrom:
         secretKeyRef:
-          name: minio-credentials
           key: AWS_ENDPOINT_URL
+          name: minio-credentials
     - name: AWS_REGION
-      value: "us-east-1"
+      value: us-east-1
 
-# Service configuration
+# ═══════════════════════════════════════════════════════════════════
+# 2. Server Command-Line Arguments 
+# ═══════════════════════════════════════════════════════════════════
+server:
+  value_options:
+    host: "0.0.0.0"
+    port: 5000
+    workers: 1  # ← Changed from 4 to 1
+  flag_options: []
+
+# ═══════════════════════════════════════════════════════════════════
+# 3. Service
+# ═══════════════════════════════════════════════════════════════════
 service:
   type: ClusterIP
   port: 5000
 
-# Disable local storage (we use S3)
+# ═══════════════════════════════════════════════════════════════════
+# 4. Storage & Ingress (disabled)
+# ═══════════════════════════════════════════════════════════════════
 storage:
   enabled: false
-
-# Ingress (disable for now)
 ingress:
   enabled: false
 
-# Resource limits
+# ═══════════════════════════════════════════════════════════════════
+# 5. Resources & Probes
+# ═══════════════════════════════════════════════════════════════════
 resources:
   requests:
     memory: 512Mi
@@ -51,7 +62,6 @@ resources:
     memory: 2Gi
     cpu: 1000m
 
-# CRITICAL FIX: Increase probe timeouts to prevent SIGTERM during slow startup
 livenessProbe:
   initialDelaySeconds: 60
   periodSeconds: 10
