@@ -1,0 +1,65 @@
+# mlflow-values.yaml
+mlflow:
+  # Backend store: PostgreSQL (read from secret)
+  backendStoreUriFrom:
+    secretKeyRef:
+      name: mlflow-db-secret
+      key: uri
+
+  # Artifact store: MinIO
+  artifactsDestination: "s3://mlflow-artifacts/"
+
+  # Environment variables loaded from the corrected secrets
+  env:
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: AWS_ACCESS_KEY_ID
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: AWS_SECRET_ACCESS_KEY
+    - name: MLFLOW_S3_ENDPOINT_URL
+      valueFrom:
+        secretKeyRef:
+          name: minio-credentials
+          key: AWS_ENDPOINT_URL
+    - name: AWS_REGION
+      value: "us-east-1"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5000
+
+# Disable local storage (we use S3)
+storage:
+  enabled: false
+
+# Ingress (disable for now)
+ingress:
+  enabled: false
+
+# Resource limits
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 250m
+  limits:
+    memory: 2Gi
+    cpu: 1000m
+
+# CRITICAL FIX: Increase probe timeouts to prevent SIGTERM during slow startup
+livenessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
