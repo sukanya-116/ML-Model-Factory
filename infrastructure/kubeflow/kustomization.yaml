@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=2.16.0
+
+images:
+- name: gcr.io/ml-pipeline/api-server
+  newName: ghcr.io/kubeflow/kfp-api-server
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/frontend
+  newName: ghcr.io/kubeflow/kfp-frontend
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/persistenceagent
+  newName: ghcr.io/kubeflow/kfp-persistence-agent
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/scheduledworkflow
+  newName: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/cache-server
+  newName: ghcr.io/kubeflow/kfp-cache-server
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/cache-deployer
+  newName: ghcr.io/kubeflow/kfp-cache-deployer
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/metadata-writer
+  newName: ghcr.io/kubeflow/kfp-metadata-writer
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/metadata-envoy
+  newName: ghcr.io/kubeflow/kfp-metadata-envoy
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/viewer-crd-controller
+  newName: ghcr.io/kubeflow/kfp-viewer-crd-controller
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/driver
+  newName: ghcr.io/kubeflow/kfp-driver
+  newTag: 2.16.0
+- name: gcr.io/ml-pipeline/launcher
+  newName: ghcr.io/kubeflow/kfp-launcher
+  newTag: 2.16.0
