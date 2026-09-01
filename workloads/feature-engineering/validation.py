@@ -29,8 +29,8 @@ load_dotenv()
 ENDPOINT = os.getenv("MLFLOW_S3_ENDPOINT_URL")
 ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
 SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-BUCKET = os.getenv("BUCKET_NAME", "raw-data")
-KEY = os.getenv("BUCKET_KEY", "mobile_sales_data.csv")
+BUCKET = os.getenv("INPUT_BUCKET", "raw-data")
+KEY = os.getenv("INPUT_KEY", "mobile_sales_data.csv")
 
 # Quality thresholds
 MAX_NEGATIVE_PRICE_PCT = 1.0      # If >1% of rows have negative Price -> FAIL
