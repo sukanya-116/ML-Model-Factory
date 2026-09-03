@@ -1,0 +1,133 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: feature-pipeline-
+  namespace: argo
+spec:
+  entrypoint: feature-pipeline
+  arguments:
+    parameters:
+      - name: input_bucket
+        value: "raw-data"
+      - name: input_key
+        value: "mobile_sales_data.csv"
+      - name: output_bucket
+        value: "processed-features"
+
+  templates:
+    # --- Main DAG ---
+    - name: feature-pipeline
+      dag:
+        tasks:
+          - name: data-validation
+            template: data-validation
+            arguments:
+              parameters:
+                - name: input_bucket
+                  value: "{{workflow.parameters.input_bucket}}"
+                - name: input_key
+                  value: "{{workflow.parameters.input_key}}"
+
+          - name: feature-engineering
+            depends: data-validation
+            template: feature-engineering
+            arguments:
+              parameters:
+                - name: input_bucket
+                  value: "{{workflow.parameters.input_bucket}}"
+                - name: input_key
+                  value: "{{workflow.parameters.input_key}}"
+                - name: output_bucket
+                  value: "{{workflow.parameters.output_bucket}}"
+
+    # --- Data Validation Template ---
+    - name: data-validation
+      inputs:
+        parameters:
+          - name: input_bucket
+          - name: input_key
+      container:
+        image: feature-engineering:v1
+        imagePullPolicy: IfNotPresent   # ✅ Use local image
+        command: ["./entrypoint.sh"]
+        env:
+          - name: TASK
+            value: "validation"
+          # MinIO configuration
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: "http://mlminio.mldata.svc.cluster.local:9000"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootUser
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootPassword
+          # Input parameters
+          - name: INPUT_BUCKET
+            value: "{{inputs.parameters.input_bucket}}"
+          - name: INPUT_KEY
+            value: "{{inputs.parameters.input_key}}"
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+      outputs:
+        artifacts:
+          - name: validation-report
+            path: /tmp/validation_report.json
+
+    # --- Feature Engineering Template ---
+    - name: feature-engineering
+      inputs:
+        parameters:
+          - name: input_bucket
+          - name: input_key
+          - name: output_bucket
+      container:
+        image: feature-engineering:v1
+        imagePullPolicy: IfNotPresent   # ✅ Use local image
+        command: ["./entrypoint.sh"]
+        env:
+          - name: TASK
+            value: "feature_engineering"
+          # MinIO configuration
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: "http://mlminio.mldata.svc.cluster.local:9000"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootUser
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootPassword
+          # MLflow configuration (optional)
+          - name: MLFLOW_TRACKING_URI
+            value: "http://mlflow-mlflow.mldata.svc.cluster.local:5000"
+          # Input/Output parameters
+          - name: INPUT_BUCKET
+            value: "{{inputs.parameters.input_bucket}}"
+          - name: INPUT_KEY
+            value: "{{inputs.parameters.input_key}}"
+          - name: OUTPUT_BUCKET
+            value: "{{inputs.parameters.output_bucket}}"
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+          limits:
+            memory: 1Gi
+            cpu: 1000m
+      outputs:
+        artifacts:
+          - name: output-uri
+            path: /tmp/output_uri.txt

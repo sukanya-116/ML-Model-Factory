@@ -2,7 +2,7 @@
 
 set -e
 
-TASK = ${TASK:-"feature_engineering"}
+TASK=${TASK:-"feature_engineering"}
 
 echo "Running task: $TASK"
 
@@ -11,7 +11,7 @@ case $TASK in
         python /app/validation.py   
     ;;
     "feature_engineering")
-        python /app/feature_engineering.py
+        python /app/featurizer.py
     ;;
   *)
     echo "Unknown task: $TASK"
