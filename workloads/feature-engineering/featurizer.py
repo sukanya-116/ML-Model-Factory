@@ -10,12 +10,11 @@ Feature Engineering Steps:
 2. Parse dates (Dispatch Date and Inward Date)
 3. Extract date-based features: year, month, day of week
 4. Compute days_to_sell (Dispatch Date - Inward Date)
-5. Create Revenue = Price * Quantity Sold
-6. Add aggregated features: avg_price_per_brand, avg_qty_per_region
-7. Categorical encoding: brand_code, region_code, ram_code, rom_code
-8. Text feature: product_spec_length
-9. Handle nulls (fill with 0)
-10. Save to MinIO as Parquet
+5. Add aggregated features: avg_price_per_brand, avg_qty_per_region
+6. Categorical encoding: brand_code, region_code, ram_code, rom_code
+7. Text feature: product_spec_length
+8. Handle nulls (fill with 0)
+9. Save to MinIO as Parquet
 """
 import os
 import sys
@@ -90,12 +89,7 @@ def feature_engineering():
         (pl.col("Dispatch Date") - pl.col("Inward Date")).dt.total_days().alias("days_to_sell")
     )
 
-    # C) Revenue (derived metric)
-    df = df.with_columns(
-        (pl.col("Price") * pl.col("Quantity Sold")).alias("Revenue")
-    )
-
-    # D) Aggregated features (added context per group)
+    # C) Aggregated features (added context per group)
     # Average Price per Brand
     brand_avg_price = df.group_by("Brand").agg(
         pl.col("Price").mean().alias("avg_price_per_brand")
@@ -128,7 +122,6 @@ def feature_engineering():
         # Numeric/Date features
         "Price",
         "days_to_sell",
-        "Revenue",
         "dispatch_year",
         "dispatch_month",
         "dispatch_day_of_week",
@@ -188,6 +181,9 @@ def feature_engineering():
     with open("/tmp/output_uri.txt", "w") as f:
         f.write(uri)
     print(f"Output URI saved: {uri}")
+
+    with open("/tmp/output_key.txt", "w") as f:
+        f.write(output_key)
 
     print("Feature Engineering completed successfully!")
     sys.exit(0)

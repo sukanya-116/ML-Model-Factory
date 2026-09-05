@@ -12,7 +12,7 @@ COPY pyproject.toml uv.lock* ./
 
 RUN uv pip install --system -e .
 
-COPY featurizer.py ./
+COPY validation.py ./
 
-ENTRYPOINT ["python", "featurizer.py"]
+ENTRYPOINT ["python", "validation.py"]
 

@@ -33,7 +33,8 @@ server:
   value_options:
     host: "0.0.0.0"
     port: 5000
-    workers: 1  # ← Changed from 4 to 1
+    workers: 1  
+    allowed_hosts: "*" 
   flag_options: []
 
 # ═══════════════════════════════════════════════════════════════════

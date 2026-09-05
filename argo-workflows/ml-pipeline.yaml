@@ -1,10 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: feature-pipeline-
+  generateName: ml-pipeline-
   namespace: argo
 spec:
-  entrypoint: feature-pipeline
+  entrypoint: ml-pipeline
   arguments:
     parameters:
       - name: input_bucket
@@ -13,12 +13,14 @@ spec:
         value: "mobile_sales_data.csv"
       - name: output_bucket
         value: "processed-features"
+      - name: features_key
+        value: "features_latest.parquet" 
 
   templates:
-    # --- Main DAG ---
-    - name: feature-pipeline
+    - name: ml-pipeline
       dag:
         tasks:
+          # 1. Data Validation
           - name: data-validation
             template: data-validation
             arguments:
@@ -28,6 +30,7 @@ spec:
                 - name: input_key
                   value: "{{workflow.parameters.input_key}}"
 
+          # 2. Feature Engineering (runs after validation)
           - name: feature-engineering
             depends: data-validation
             template: feature-engineering
@@ -40,20 +43,29 @@ spec:
                 - name: output_bucket
                   value: "{{workflow.parameters.output_bucket}}"
 
-    # --- Data Validation Template ---
+          # 3. Model Training (runs after feature engineering)
+          - name: model-training
+            depends: feature-engineering
+            template: model-training
+            arguments:
+              parameters:
+                - name: output_bucket
+                  value: "{{workflow.parameters.output_bucket}}"
+                # We pass the exact URI produced by FE
+                - name: features_key
+                  value: "{{tasks.feature-engineering.outputs.parameters.output-key}}"
+
+    # ---------- TEMPLATE 1: Data Validation ----------
     - name: data-validation
       inputs:
         parameters:
           - name: input_bucket
           - name: input_key
       container:
-        image: feature-engineering:v1
-        imagePullPolicy: IfNotPresent   # ✅ Use local image
-        command: ["./entrypoint.sh"]
+        image: data-validation:v1
+        imagePullPolicy: Never
+        command: ["python", "validation.py"]
         env:
-          - name: TASK
-            value: "validation"
-          # MinIO configuration
           - name: MLFLOW_S3_ENDPOINT_URL
             value: "http://mlminio.mldata.svc.cluster.local:9000"
           - name: AWS_ACCESS_KEY_ID
@@ -61,29 +73,23 @@ spec:
               secretKeyRef:
                 name: mlminio
                 key: rootUser
+                namespace: mldata
           - name: AWS_SECRET_ACCESS_KEY
             valueFrom:
               secretKeyRef:
                 name: mlminio
                 key: rootPassword
-          # Input parameters
+                namespace: mldata
           - name: INPUT_BUCKET
             value: "{{inputs.parameters.input_bucket}}"
           - name: INPUT_KEY
             value: "{{inputs.parameters.input_key}}"
-        resources:
-          requests:
-            memory: 256Mi
-            cpu: 100m
-          limits:
-            memory: 512Mi
-            cpu: 500m
       outputs:
         artifacts:
           - name: validation-report
             path: /tmp/validation_report.json
 
-    # --- Feature Engineering Template ---
+    # ---------- TEMPLATE 2: Feature Engineering ----------
     - name: feature-engineering
       inputs:
         parameters:
@@ -91,13 +97,10 @@ spec:
           - name: input_key
           - name: output_bucket
       container:
-        image: feature-engineering:v1
-        imagePullPolicy: IfNotPresent   # ✅ Use local image
-        command: ["./entrypoint.sh"]
+        image: feature-engineering:v3
+        imagePullPolicy: Never
+        command: ["python", "featurizer.py"]
         env:
-          - name: TASK
-            value: "feature_engineering"
-          # MinIO configuration
           - name: MLFLOW_S3_ENDPOINT_URL
             value: "http://mlminio.mldata.svc.cluster.local:9000"
           - name: AWS_ACCESS_KEY_ID
@@ -105,29 +108,62 @@ spec:
               secretKeyRef:
                 name: mlminio
                 key: rootUser
+                namespace: mldata
           - name: AWS_SECRET_ACCESS_KEY
             valueFrom:
               secretKeyRef:
                 name: mlminio
                 key: rootPassword
-          # MLflow configuration (optional)
+                namespace: mldata
           - name: MLFLOW_TRACKING_URI
             value: "http://mlflow-mlflow.mldata.svc.cluster.local:5000"
-          # Input/Output parameters
           - name: INPUT_BUCKET
             value: "{{inputs.parameters.input_bucket}}"
           - name: INPUT_KEY
             value: "{{inputs.parameters.input_key}}"
           - name: OUTPUT_BUCKET
             value: "{{inputs.parameters.output_bucket}}"
-        resources:
-          requests:
-            memory: 512Mi
-            cpu: 250m
-          limits:
-            memory: 1Gi
-            cpu: 1000m
       outputs:
         artifacts:
           - name: output-uri
             path: /tmp/output_uri.txt
+        parameters:
+          - name: output-key
+            valueFrom:
+              path: /tmp/output_key.txt  
+
+    # ---------- TEMPLATE 3: Model Training ----------
+    - name: model-training
+      inputs:
+        parameters:
+          - name: output_bucket
+          - name: features_key
+      container:
+        image: model-training:v1
+        imagePullPolicy: Never
+        command: ["python", "train.py"]
+        env:
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: "http://mlminio.mldata.svc.cluster.local:9000"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootUser
+                namespace: mldata
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootPassword
+                namespace: mldata
+          - name: MLFLOW_TRACKING_URI
+            value: "http://mlflow-mlflow.mldata.svc.cluster.local:5000"
+          - name: OUTPUT_BUCKET
+            value: "{{inputs.parameters.output_bucket}}"
+          - name: FEATURES_KEY
+            value: "{{inputs.parameters.features_key}}"
+      outputs:
+        artifacts:
+          - name: model-uri
+            path: /tmp/model_uri.txt
