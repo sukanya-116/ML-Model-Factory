@@ -51,7 +51,6 @@ spec:
               parameters:
                 - name: output_bucket
                   value: "{{workflow.parameters.output_bucket}}"
-                # We pass the exact URI produced by FE
                 - name: features_key
                   value: "{{tasks.feature-engineering.outputs.parameters.output-key}}"
 
@@ -97,7 +96,7 @@ spec:
           - name: input_key
           - name: output_bucket
       container:
-        image: feature-engineering:v3
+        image: feature-engineering:v4
         imagePullPolicy: Never
         command: ["python", "featurizer.py"]
         env:

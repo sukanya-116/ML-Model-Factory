@@ -1,0 +1,47 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: mobile-sales-predictor
+  namespace: ml-serving
+  annotations:
+    serving.kserve.io/s3-endpoint: "mlminio.mldata.svc.cluster.local:9000"
+    serving.kserve.io/s3-usehttps: "false"
+spec:
+  predictor:
+    containers:
+      - name: predictor
+        image: ghcr.io/mlflow/mlflow:v3.14.0-full
+        env:
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: "http://mlminio.mldata.svc.cluster.local:9000"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: minio-credentials
+                key: awsAccessKeyID
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: minio-credentials
+                key: awsSecretAccessKey
+          - name: MLFLOW_S3_ARTIFACT_URI
+            value: "s3://mlflow-artifacts/1/cd1a918f045346cda801e4868358fb4b/artifacts/model" 
+        command:
+          - "mlflow"
+          - "models"
+          - "serve"
+          - "--model-uri"
+          - "$(MLFLOW_S3_ARTIFACT_URI)"
+          - "--host"
+          - "0.0.0.0"
+          - "--port"
+          - "8080"
+          - "--env-manager"
+          - "local"  
+        resources:
+          limits:
+            cpu: "1"
+            memory: 2Gi
+          requests:
+            cpu: "0.5"
+            memory: 1Gi
