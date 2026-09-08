@@ -6,6 +6,7 @@ import os
 import sys
 import boto3
 import polars as pl
+import pandas as pd
 import mlflow
 import mlflow.sklearn
 from sklearn.model_selection import train_test_split
@@ -53,7 +54,11 @@ def train_model():
     # 4. Train/Test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
-    
+    test_df = pd.concat([X_test, y_test], axis=1).reset_index(drop=True)
+    local_test_path = "/tmp/test_data.parquet"
+    test_df.to_parquet(local_test_path,index=False)
+    s3.upload_file(local_test_path, BUCKET, "test_data.parquet")
+
     # 5. Train model
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
@@ -81,7 +86,11 @@ def train_model():
         mlflow.log_metric("mse", mse)
         mlflow.log_metric("r2", r2)
         
-        mlflow.sklearn.log_model(model, "model")
+        mlflow.sklearn.log_model(
+            sk_model=model, 
+            artifact_path="model",
+            registered_model_name="mobile-sales-predictor"
+            )
 
         print(f"Logged model to MLflow run: {run.info.run_id}")
     
