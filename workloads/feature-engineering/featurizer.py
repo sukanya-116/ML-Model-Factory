@@ -33,7 +33,7 @@ SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 INPUT_BUCKET = os.getenv("INPUT_BUCKET", "raw-data")
 INPUT_KEY = os.getenv("INPUT_KEY", "mobile_sales_data.csv")
 OUTPUT_BUCKET = os.getenv("OUTPUT_BUCKET", "processed-features")
-RUN_DATE = os.getenv("RUN_DATE", datetime.now().strftime("%Y-%m-%d"))
+OUTPUT_KEY = os.getenv("OUTPUT_KEY", "features_latest.parquet")
 
 def feature_engineering():
     """Main feature engineering pipeline."""
@@ -152,7 +152,7 @@ def feature_engineering():
     print(f"Columns: {feature_df.columns}")
 
     # --- 8. Save to MinIO as Parquet ---
-    output_key = f"features_{RUN_DATE}.parquet"
+    output_key = os.getenv("OUTPUT_KEY", "features_latest.parquet")
     local_path = f"/tmp/{output_key}"
     feature_df.write_parquet(local_path)
 

@@ -96,7 +96,7 @@ spec:
           - name: input_key
           - name: output_bucket
       container:
-        image: feature-engineering:v4
+        image: feature-engineering:v1
         imagePullPolicy: Never
         command: ["python", "featurizer.py"]
         env:
