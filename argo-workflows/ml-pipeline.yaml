@@ -54,6 +54,11 @@ spec:
                 - name: features_key
                   value: "{{tasks.feature-engineering.outputs.parameters.output-key}}"
 
+          # 4. Model Evaluation (runs after model training)
+          - name: model-evaluation
+            depends: model-training
+            template: model-evaluation
+
     # ---------- TEMPLATE 1: Data Validation ----------
     - name: data-validation
       inputs:
@@ -166,3 +171,41 @@ spec:
         artifacts:
           - name: model-uri
             path: /tmp/model_uri.txt
+
+    # ---------- TEMPLATE 4: Model Evaluation ----------
+    - name: model-evaluation
+      container:
+        image: model-evaluation:v1
+        imagePullPolicy: Never
+        command: ["python", "evaluate.py"]
+        env:
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: "http://mlminio.mldata.svc.cluster.local:9000"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootUser
+                namespace: mldata
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootPassword
+                namespace: mldata
+          - name: MLFLOW_TRACKING_URI
+            value: "http://mlflow-mlflow.mldata.svc.cluster.local:5000"
+          - name: OUTPUT_BUCKET
+            value: "processed-features"
+          - name: TEST_DATA_KEY
+            value: "test_data.parquet"
+          - name: MODEL_NAME
+            value: "mobile-sales-predictor"
+          - name: ALIAS_CHAMPION
+            value: "champion"
+          - name: R2_THRESHOLD
+            value: "0.01"
+      outputs:
+        artifacts:
+          - name: decision
+            path: /tmp/decision.json
