@@ -59,6 +59,15 @@ spec:
             depends: model-training
             template: model-evaluation
 
+          # 5. Model Promotion (runs after model evaluation)
+          - name: model-promotion
+            depends: model-evaluation
+            template: model-promotion
+            arguments:
+              artifacts:
+                - name: decision
+                  from: "{{tasks.model-evaluation.outputs.artifacts.decision}}"
+
     # ---------- TEMPLATE 1: Data Validation ----------
     - name: data-validation
       inputs:
@@ -175,7 +184,7 @@ spec:
     # ---------- TEMPLATE 4: Model Evaluation ----------
     - name: model-evaluation
       container:
-        image: model-evaluation:v1
+        image: model-evaluation:v2
         imagePullPolicy: Never
         command: ["python", "evaluate.py"]
         env:
@@ -209,3 +218,39 @@ spec:
         artifacts:
           - name: decision
             path: /tmp/decision.json
+
+    # ---------- TEMPLATE 5: Model Promotion ----------
+    - name: model-promotion
+      inputs:
+        artifacts:
+          - name: decision
+            path: /tmp/decision.json
+      container:
+        image: model-promotion:v1
+        imagePullPolicy: Never
+        command: ["python", "promote.py"]
+        env:
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: "http://mlminio.mldata.svc.cluster.local:9000"
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootUser
+                namespace: mldata
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mlminio
+                key: rootPassword
+                namespace: mldata
+          - name: MLFLOW_TRACKING_URI
+            value: "http://mlflow-mlflow.mldata.svc.cluster.local:5000"
+          - name: MODEL_NAME
+            value: "mobile-sales-predictor"
+          - name: ALIAS_CHAMPION
+            value: "champion"
+          - name: KSERVE_NAMESPACE
+            value: "ml-serving"
+          - name: KSERVE_SERVICE_NAME
+            value: "mobile-sales-predictor"
