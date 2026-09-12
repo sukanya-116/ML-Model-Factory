@@ -109,6 +109,7 @@ if not versions:
 
 latest_version = max(versions, key=lambda v: int(v.version))
 RUN_ID = latest_version.run_id
+print(f"Latest run ID: {RUN_ID} (version {latest_version.version})")
 
 # Load the model from the run
 try:
