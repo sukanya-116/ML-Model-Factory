@@ -1,0 +1,46 @@
+# infrastructure/postgresql/values.yaml
+#
+# Bitnami PostgreSQL values for ML Factory
+# Used by MLflow as the backend metadata store.
+#
+# Installation:
+#   helm install mlflow-postgres bitnami/postgresql \
+#     --namespace mldata \
+#     --create-namespace \
+#     -f infrastructure/postgresql/values.yaml
+#
+# Uninstall:
+#   helm uninstall mlflow-postgres -n mldata
+
+# ============================================================
+# Authentication
+# ============================================================
+auth:
+  # Username for the MLflow application
+  username: mlflowuser
+
+  # Password for the MLflow application user
+  password: mlflowpass
+
+  # Database to create for MLflow
+  database: mlflow
+
+  # Superuser (postgres) password
+  postgresPassword: postgres
+
+
+# ============================================================
+# Persistence
+# ============================================================
+persistence:
+  enabled: true
+  size: 10Gi
+
+# ============================================================
+# Service
+# ============================================================
+service:
+  type: ClusterIP
+  ports:
+    postgresql: 5432
+
