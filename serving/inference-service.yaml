@@ -24,8 +24,10 @@ spec:
               secretKeyRef:
                 name: minio-credentials
                 key: awsSecretAccessKey
+          - name: MLFLOW_TRACKING_URI
+            value: "http://mlflow-mlflow.mldata.svc.cluster.local:5000"
           - name: MLFLOW_S3_ARTIFACT_URI
-            value: "s3://mlflow-artifacts/1/cd1a918f045346cda801e4868358fb4b/artifacts/model" 
+            value: "runs:/43eb786588eb4c33857198418f4fca3a/model" 
         command:
           - "mlflow"
           - "models"
